@@ -1,17 +1,12 @@
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -28,6 +23,33 @@ import javax.imageio.ImageIO
 
 private val mainViewModel: MainViewModel by lazy { MainViewModel() }
 
+@Composable
+fun comboBoxAfterTime(items: List<String>, selectedIndex: Int, selectedIndexChanged: (Int) -> Unit) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    Column {
+        Text(text = "Select term period to Popup Showing")
+        Text(
+            items[selectedIndex],
+            modifier = Modifier.fillMaxWidth().clickable(onClick = { expanded = true }).background(Color.LightGray)
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth().background(Color.DarkGray)
+        ) {
+            items.forEachIndexed { index, s ->
+                DropdownMenuItem(onClick = {
+                    selectedIndexChanged(index)
+                    expanded = false
+                }) {
+                    Text(text = s)
+                }
+            }
+        }
+    }
+}
+
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
@@ -35,12 +57,17 @@ fun main() = application {
         state = rememberWindowState(width = 400.dp, height = 300.dp)
     ) {
 
-        val lastPrintTime by rememberSaveable { mainViewModel.lastPrintTime }
-        var text by rememberSaveable { mutableStateOf("last PrintTime is ${TimeUtil.formatTime(lastPrintTime)}") }
-        var btnText by rememberSaveable { mutableStateOf("Do Print") }
-        var btnEnabled by rememberSaveable { mutableStateOf(true) }
+        val lastPrintTime = mainViewModel.getLastPrintingTime()
+        val lastPeriodIndex = mainViewModel.getLastPeriodIndex()
 
-        if (TimeUtil.isInWeek(lastPrintTime)) {
+        val needToExit = when (lastPeriodIndex) {
+            0 -> TimeUtil.isInWeek(lastPrintTime)
+            1 -> TimeUtil.isIn2Weeks(lastPrintTime)
+            2 -> TimeUtil.isIn3Weeks(lastPrintTime)
+            else -> false
+        }
+
+        if (needToExit) {
             exitApplication()
             return@Window
         }
@@ -49,7 +76,18 @@ fun main() = application {
 
         MaterialTheme {
             Column(Modifier.fillMaxSize().padding(10.dp), Arrangement.spacedBy(5.dp)) {
-                Text(text)
+                val periodItems = listOf("1 Week", "2 Weeks", "3 Weeks")
+                var txtStatus by rememberSaveable {
+                    mutableStateOf("last PrintTime is ${TimeUtil.formatTime(lastPrintTime)}")
+                }
+                var btnText by rememberSaveable { mutableStateOf("Do Print") }
+                var btnEnabled by rememberSaveable { mutableStateOf(true) }
+                var periodIndex by rememberSaveable { mutableStateOf(lastPeriodIndex) }
+
+                comboBoxAfterTime(periodItems, periodIndex) { index ->
+                    periodIndex = index
+                }
+                Text(txtStatus)
                 Button(modifier = Modifier.align(Alignment.CenterHorizontally),
                     onClick = {
                         if (!btnEnabled) {
@@ -58,7 +96,7 @@ fun main() = application {
 
                         btnEnabled = false
                         scope.launch(Dispatchers.IO) {
-                            text = "Printing..."
+                            txtStatus = "Printing..."
                             btnText = "Now working"
 
                             val job = PrinterJob.getPrinterJob()
@@ -82,14 +120,15 @@ fun main() = application {
                                     pageFormat.imageableHeight.toInt(),
                                     null
                                 )
-                                text = "Image send done"
+                                txtStatus = "Image send done"
                                 return@setPrintable Printable.PAGE_EXISTS
                             }
 
                             if (job.printDialog()) {
                                 try {
                                     job.print()
-                                    mainViewModel.putLastPrintingTIme()
+                                    mainViewModel.putLastPrintingTime()
+                                    mainViewModel.putLastPeriodIndex(periodIndex)
                                 } catch (e: PrinterException) {
                                     e.printStackTrace()
                                 }

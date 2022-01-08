@@ -1,20 +1,15 @@
 package model
 
-import androidx.compose.runtime.mutableStateOf
 import java.util.prefs.Preferences
 
 class MainViewModel {
 
     companion object {
         private const val LAST_PRINT_TIME_KEY = "lastPrintTime"
+        private const val LAST_PERIOD_INDEX_KEY = "lastPeriodIndex"
     }
 
-    val lastPrintTime = mutableStateOf(0L)
     private val pref = Preferences.userRoot().node(this.javaClass.name)
-
-    init {
-        lastPrintTime.value = getLastPrintingTime()
-    }
 
     fun getLastPrintingTime(): Long {
         val savedLastPrintTime = pref.getLong(LAST_PRINT_TIME_KEY, 0)
@@ -22,14 +17,19 @@ class MainViewModel {
             System.currentTimeMillis()
         } else {
             savedLastPrintTime
-        }.also {
-            lastPrintTime.value = it
         }
     }
 
-    fun putLastPrintingTIme() {
+    fun getLastPeriodIndex(): Int {
+        return pref.getInt(LAST_PERIOD_INDEX_KEY, 0)
+    }
+
+    fun putLastPrintingTime() {
         val curTime = System.currentTimeMillis()
         pref.putLong(LAST_PRINT_TIME_KEY, curTime)
-        lastPrintTime.value = curTime
+    }
+
+    fun putLastPeriodIndex(index: Int) {
+        pref.putInt(LAST_PERIOD_INDEX_KEY, index)
     }
 }

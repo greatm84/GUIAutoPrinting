@@ -19,6 +19,14 @@ object TimeUtil {
         return isInTime(fromTime, WEEK)
     }
 
+    fun isIn2Weeks(fromTime: Long): Boolean {
+        return isInTime(fromTime, 2 * WEEK)
+    }
+
+    fun isIn3Weeks(fromTime: Long): Boolean {
+        return isInTime(fromTime, 3 * WEEK)
+    }
+
     fun formatTime(timeMs: Long): String {
         val simpleDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
         return simpleDateFormat.format(timeMs)
