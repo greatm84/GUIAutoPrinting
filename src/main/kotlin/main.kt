@@ -19,6 +19,8 @@ import java.awt.print.Printable
 import java.awt.print.PrinterException
 import java.awt.print.PrinterJob
 import java.io.IOException
+import java.time.Duration
+import java.time.Instant
 import javax.imageio.ImageIO
 
 private val mainViewModel: MainViewModel by lazy { MainViewModel() }
@@ -72,13 +74,21 @@ fun main() = application {
             return@Window
         }
 
+        val lastTimeInst = Instant.ofEpochMilli(lastPrintTime)
+        val nowTimeInst = Instant.now()
+
+        val elapsedTime = Duration.between(lastTimeInst, nowTimeInst)
+
         val scope = rememberCoroutineScope()
 
         MaterialTheme {
             Column(Modifier.fillMaxSize().padding(10.dp), Arrangement.spacedBy(5.dp)) {
                 val periodItems = listOf("1 Week", "2 Weeks", "3 Weeks")
                 var txtStatus by rememberSaveable {
-                    mutableStateOf("last PrintTime is ${TimeUtil.formatTime(lastPrintTime)}")
+                    mutableStateOf(
+                        "last PrintTime is ${TimeUtil.formatTime(lastPrintTime)} " +
+                                " (${elapsedTime.toDays()} 일 전)"
+                    )
                 }
                 var btnText by rememberSaveable { mutableStateOf("Do Print") }
                 var btnEnabled by rememberSaveable { mutableStateOf(true) }
