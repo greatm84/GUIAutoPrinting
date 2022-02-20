@@ -144,6 +144,11 @@ fun main() = application {
                         }) {
                         Text(btnText)
                     }
+                    Button(onClick = {
+                        exitApplication()
+                    }) {
+                        Text("Cancel")
+                    }
                 }
             }
         }
